@@ -10,14 +10,21 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         body { font-family: 'Poppins', sans-serif; background-color: #1a1a1a; color: #f0f0f0; }
+        .avax-logo { width: 40px; height: 40px; margin-right: 10px; }
+        .btn-primary { background: linear-gradient(90deg, #e84142, #b52525); transition: all 0.3s ease; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(232, 65, 66, 0.4); }
+        .btn-primary:disabled { background: #4a4a4a; cursor: not-allowed; transform: none; box-shadow: none; }
+        .glass-panel { background: rgba(40, 40, 40, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        /* Styles for the animating coin visual */
         .coin-container { perspective: 1000px; }
         .coin {
             width: 150px; height: 150px; position: relative;
             transform-style: preserve-3d;
             transition: transform 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045);
         }
-        .coin.flipping-heads { transform: rotateY(1800deg); }
-        .coin.flipping-tails { transform: rotateY(1980deg); }
+        .coin.flipping-heads { transform: rotateY(1800deg); } /* 5 full spins */
+        .coin.flipping-tails { transform: rotateY(1980deg); } /* 5.5 spins */
         .coin-face {
             position: absolute; width: 100%; height: 100%;
             backface-visibility: hidden; display: flex; align-items: center; justify-content: center;
@@ -26,11 +33,6 @@
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.3);
         }
         .coin-face.tails { transform: rotateY(180deg); }
-        .avax-logo { width: 40px; height: 40px; margin-right: 10px; }
-        .btn-primary { background: linear-gradient(90deg, #e84142, #b52525); transition: all 0.3s ease; }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(232, 65, 66, 0.4); }
-        .btn-primary:disabled { background: #4a4a4a; cursor: not-allowed; transform: none; box-shadow: none; }
-        .glass-panel { background: rgba(40, 40, 40, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
@@ -41,32 +43,51 @@
                 <svg class="avax-logo" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 32C24.8366 32 32 24.8366 32 16C32 7.16344 24.8366 0 16 0C7.16344 0 0 7.16344 0 16C0 24.8366 7.16344 32 16 32ZM13.8643 9.49281L19.2941 9.49281L23.7314 22.5072L18.3016 22.5072L16.8973 18.6738L9.2066 18.6738L7.8023 22.5072L2.37255 22.5072L13.8643 9.49281ZM16.0501 12.3392L11.5369 16.096L14.6133 16.096L16.0501 12.3392Z" fill="#E84142"/></svg>
                 <h1 class="text-3xl font-bold text-white tracking-tight">AVAX Coin Flip</h1>
             </div>
-            <p class="text-gray-400">A simple, fair game on the Fuji Testnet.</p>
+            <p class="text-gray-400">Choose Heads or Tails to Play</p>
         </header>
 
         <main>
-            <div class="coin-container my-8"><div id="coin" class="coin"><div class="coin-face heads">HEADS</div><div class="coin-face tails">TAILS</div></div></div>
+             <!-- The single animating coin visual -->
+            <div class="coin-container my-8">
+                <div id="coin" class="coin">
+                    <div class="coin-face heads">HEADS</div>
+                    <div class="coin-face tails">TAILS</div>
+                </div>
+            </div>
+            
+            <div id="gameContainer" class="hidden">
+                 <div class="flex justify-center items-center space-x-4 mb-4">
+                    <button id="flipHeadsBtn" class="w-full py-3 px-4 rounded-lg font-semibold text-lg text-white btn-primary">Bet on Heads</button>
+                    <button id="flipTailsBtn" class="w-full py-3 px-4 rounded-lg font-semibold text-lg text-white btn-primary">Bet on Tails</button>
+                </div>
+            </div>
+
             <div class="bg-gray-800/50 rounded-lg p-4 mb-6 space-y-2">
                 <div class="flex justify-between items-center text-lg"><span class="text-gray-300">Bet Amount:</span><span class="font-semibold text-white">0.05 AVAX</span></div>
                 <div class="flex justify-between items-center text-lg"><span class="text-gray-300">Payout:</span><span class="font-semibold text-white">1.9x (0.095 AVAX)</span></div>
                 <div class="flex justify-between items-center text-lg"><span class="text-gray-300">House Balance:</span><span id="houseBalance" class="font-semibold text-white">...</span></div>
             </div>
-            <div id="connectWalletContainer"><button id="connectWalletBtn" class="w-full py-3 px-4 rounded-lg font-semibold text-lg text-white btn-primary">Connect Wallet</button></div>
-            <div id="gameContainer" class="hidden"><button id="flipBtn" class="w-full py-3 px-4 rounded-lg font-semibold text-lg text-white btn-primary">Flip the Coin!</button><p id="walletAddress" class="text-gray-500 mt-3 text-sm truncate"></p></div>
+
+            <div id="connectWalletContainer">
+                <button id="connectWalletBtn" class="w-full py-3 px-4 rounded-lg font-semibold text-lg text-white btn-primary">Connect Wallet</button>
+            </div>
+            
+            <p id="walletAddress" class="text-gray-500 mt-4 text-sm truncate"></p>
             <div id="messageArea" class="mt-4 text-center min-h-[24px]"><p id="messageText" class="text-gray-300"></p></div>
         </main>
     </div>
 
     <script>
         // --- Configuration ---
-        const contractAddress = "0x4cea1C195559BC8F784Dc1cB85aCf64Caf6e69c7";
-        const contractABI = [{"inputs":[],"name":"flip","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"player","type":"address"},{"indexed":false,"internalType":"bool","name":"outcomeIsHeads","type":"bool"},{"indexed":false,"internalType":"bool","name":"playerWon","type":"bool"}],"name":"FlipResult","type":"event"},{"inputs":[],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"stateMutability":"payable","type":"receive"},{"inputs":[],"name":"BET_AMOUNT","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getBalanceInAvax","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
+        const contractAddress = "0xA67df10E23992f4bBf8d38Ae860DE5B6eDBa8320";
+        const contractABI = [{"inputs":[{"internalType":"bool","name":"_choseHeads","type":"bool"}],"name":"flip","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"player","type":"address"},{"indexed":false,"internalType":"bool","name":"choseHeads","type":"bool"},{"indexed":false,"internalType":"bool","name":"outcomeIsHeads","type":"bool"},{"indexed":false,"internalType":"bool","name":"playerWon","type":"bool"}],"name":"FlipResult","type":"event"},{"inputs":[{"internalType":"address","name":"_admin","type":"address"},{"internalType":"uint256","name":"_amountInAvax","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"stateMutability":"payable","type":"receive"},{"inputs":[],"name":"BET_AMOUNT","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getBalanceInAvax","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
         const fujiChainId = '0xa869';
         const betAmountHex = '0xB1A2BC2EC50000'; // 0.05 AVAX in Hex Wei
 
         // --- DOM Elements ---
         const connectWalletBtn = document.getElementById('connectWalletBtn');
-        const flipBtn = document.getElementById('flipBtn');
+        const flipHeadsBtn = document.getElementById('flipHeadsBtn');
+        const flipTailsBtn = document.getElementById('flipTailsBtn');
         const houseBalanceEl = document.getElementById('houseBalance');
         const walletAddressEl = document.getElementById('walletAddress');
         const messageTextEl = document.getElementById('messageText');
@@ -76,23 +97,18 @@
 
         // --- State ---
         let currentAccount = null;
-        const contractInterface = new ethers.utils.Interface(contractABI);
+        let contractInterface;
 
-        // --- Core Wallet Logic (Matches Sample) ---
+        // --- Core Wallet Logic ---
         
         async function connectWallet() {
-            if (typeof window.ethereum === 'undefined') {
-                return showMessage('MetaMask is not installed!', 'error');
-            }
+            if (typeof window.ethereum === 'undefined') { return showMessage('MetaMask is not installed!', 'error'); }
             try {
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 handleAccountsChanged(accounts);
             } catch (error) {
-                if (error.code === -32002) {
-                     showMessage('Connection request already pending. Check MetaMask.', 'error');
-                } else {
-                     showMessage('Wallet connection rejected.', 'error');
-                }
+                if (error.code === -32002) { showMessage('Connection request already pending. Check MetaMask.', 'error'); } 
+                else { showMessage('Wallet connection rejected.', 'error'); }
                 console.error("Connection failed:", error);
             }
         }
@@ -102,6 +118,7 @@
                 currentAccount = null;
                 connectWalletContainer.classList.remove('hidden');
                 gameContainer.classList.add('hidden');
+                walletAddressEl.textContent = '';
                 showMessage('Wallet disconnected. Please connect to play.', 'info');
             } else if (accounts[0] !== currentAccount) {
                 currentAccount = accounts[0];
@@ -117,21 +134,13 @@
             try {
                 const chainId = await window.ethereum.request({ method: 'eth_chainId' });
                 if (chainId !== fujiChainId) {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: fujiChainId }],
-                    });
-                    // After switching, the chainChanged event will trigger a reload via our listener.
+                    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: fujiChainId }] });
                 } else {
-                    // If already on the right network, update the balance.
                     updateHouseBalance();
                 }
             } catch (switchError) {
-                if (switchError.code === 4902) {
-                    await addFujiNetwork();
-                } else {
-                    showMessage('Please switch to Fuji Testnet in MetaMask.', 'error');
-                }
+                if (switchError.code === 4902) { await addFujiNetwork(); } 
+                else { showMessage('Please switch to Fuji Testnet in MetaMask.', 'error'); }
             }
         }
 
@@ -146,35 +155,29 @@
                         blockExplorerUrls: ['https://testnet.snowtrace.io/']
                     }],
                 });
-            } catch (addError) {
-                showMessage('Could not add Fuji network.', 'error');
-            }
+            } catch (addError) { showMessage('Could not add Fuji network.', 'error'); }
         }
 
         // --- Game Interaction Logic ---
 
         async function updateHouseBalance() {
+            if (!contractInterface) return;
             try {
                 const data = contractInterface.encodeFunctionData("getBalanceInAvax");
-                const balanceHex = await window.ethereum.request({
-                    method: 'eth_call',
-                    params: [{ to: contractAddress, data: data }, 'latest']
-                });
+                const balanceHex = await window.ethereum.request({ method: 'eth_call', params: [{ to: contractAddress, data: data }, 'latest'] });
                 const balance = ethers.BigNumber.from(balanceHex).toString();
                 houseBalanceEl.textContent = `${balance} AVAX`;
-            } catch (error) {
-                console.error("Could not fetch balance:", error);
-                houseBalanceEl.textContent = 'Error';
-            }
+            } catch (error) { console.error("Could not fetch balance:", error); houseBalanceEl.textContent = 'Error'; }
         }
 
-        async function flipCoin() {
+        async function flipCoin(choseHeads) {
+            if (!contractInterface) return;
             setButtonLoading(true);
             showMessage('Confirm transaction in your wallet...', 'info');
 
             const txParams = {
                 from: currentAccount, to: contractAddress, value: betAmountHex,
-                data: contractInterface.encodeFunctionData("flip"),
+                data: contractInterface.encodeFunctionData("flip", [choseHeads]),
             };
 
             try {
@@ -186,14 +189,11 @@
                     const flipResultLog = receipt.logs.find(log => log.address.toLowerCase() === contractAddress.toLowerCase());
                     if (flipResultLog) {
                         const decodedLog = contractInterface.decodeEventLog("FlipResult", flipResultLog.data, flipResultLog.topics);
-                        handleFlipResult(decodedLog.outcomeIsHeads, decodedLog.playerWon);
+                        handleFlipResult(decodedLog.choseHeads, decodedLog.outcomeIsHeads, decodedLog.playerWon);
                     } else {
-                        showMessage('Flip successful, but result unclear.', 'info');
-                        setButtonLoading(false); updateHouseBalance();
+                        showMessage('Flip successful, but result unclear.', 'info'); setButtonLoading(false); updateHouseBalance();
                     }
-                } else {
-                    showMessage('Transaction failed. Please try again.', 'error'); setButtonLoading(false);
-                }
+                } else { showMessage('Transaction failed. Please try again.', 'error'); setButtonLoading(false); }
             } catch (error) {
                 if (error.code === 4001) { showMessage('Transaction cancelled.', 'error'); } 
                 else { showMessage('An error occurred.', 'error'); console.error(error); }
@@ -201,15 +201,20 @@
             }
         }
         
-        function handleFlipResult(outcomeIsHeads, playerWon) {
-            coin.className = 'coin';
-            void coin.offsetWidth;
+        function handleFlipResult(choseHeads, outcomeIsHeads, playerWon) {
+            coin.className = 'coin'; // Reset animation class
+            void coin.offsetWidth; // This is a trick to force the browser to repaint, allowing the animation to restart
             coin.classList.add(outcomeIsHeads ? 'flipping-heads' : 'flipping-tails');
+            
             setTimeout(() => {
-                if (playerWon) { showMessage(`You won 0.095 AVAX! 🎉`, 'success'); } 
-                else { showMessage(`It was ${outcomeIsHeads ? 'Heads' : 'Tails'}. Better luck next time!`, 'error'); }
-                updateHouseBalance(); setButtonLoading(false);
-            }, 1600);
+                if (playerWon) {
+                    showMessage(`It was ${outcomeIsHeads ? 'Heads' : 'Tails'}! You won 0.095 AVAX! 🎉`, 'success');
+                } else {
+                    showMessage(`It was ${outcomeIsHeads ? 'Heads' : 'Tails'}. Better luck next time!`, 'error');
+                }
+                updateHouseBalance();
+                setButtonLoading(false);
+            }, 1600); // Wait for animation to mostly finish
         }
 
         // --- Utility Functions ---
@@ -226,8 +231,17 @@
         }
 
         function setButtonLoading(isLoading) {
-            flipBtn.disabled = isLoading;
-            flipBtn.innerHTML = isLoading ? `<svg class="animate-spin h-5 w-5 mx-auto" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>` : 'Flip the Coin!';
+            flipHeadsBtn.disabled = isLoading;
+            flipTailsBtn.disabled = isLoading;
+
+            const loadingSpinner = `<svg class="animate-spin h-5 w-5 mx-auto" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+            if (isLoading) {
+                flipHeadsBtn.innerHTML = loadingSpinner;
+                flipTailsBtn.innerHTML = loadingSpinner;
+            } else {
+                flipHeadsBtn.textContent = 'Bet on Heads';
+                flipTailsBtn.textContent = 'Bet on Tails';
+            }
         }
 
         function showMessage(msg, type = 'info') {
@@ -238,10 +252,16 @@
 
         // --- Initial Load & Event Listeners ---
         function init() {
+            if (contractABI && contractABI.length > 0 && contractAddress) {
+                contractInterface = new ethers.utils.Interface(contractABI);
+            } else {
+                showMessage('Contract address or ABI is missing!', 'error');
+                return;
+            }
+
             if (typeof window.ethereum !== 'undefined') {
                 window.ethereum.on('accountsChanged', handleAccountsChanged);
                 window.ethereum.on('chainChanged', () => window.location.reload());
-                // Silently check for an already-connected account
                 window.ethereum.request({ method: 'eth_accounts' })
                     .then(handleAccountsChanged)
                     .catch(err => console.error("Error fetching initial accounts:", err));
@@ -252,9 +272,9 @@
         }
         
         connectWalletBtn.addEventListener('click', connectWallet);
-        flipBtn.addEventListener('click', flipCoin);
+        flipHeadsBtn.addEventListener('click', () => flipCoin(true)); // true for Heads
+        flipTailsBtn.addEventListener('click', () => flipCoin(false)); // false for Tails
         
-        // Run the initialization function when the page loads
         init();
     </script>
 </body>
