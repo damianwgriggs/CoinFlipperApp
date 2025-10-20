@@ -64,7 +64,7 @@
 
             <div class="bg-gray-800/50 rounded-lg p-4 mb-6 space-y-2">
                 <div class="flex justify-between items-center text-lg"><span class="text-gray-300">Bet Amount:</span><span class="font-semibold text-white">0.05 AVAX</span></div>
-                <div class="flex justify-between items-center text-lg"><span class="text-gray-300">Payout:</span><span class="font-semibold text-white">1.9x (0.095 AVAX)</span></div>
+                <div class="flex justify-between items-center text-lg"><span class="text-gray-300">Payout:</span><span class="font-semibold text-white">1.8x (0.09 AVAX)</span></div>
                 <div class="flex justify-between items-center text-lg"><span class="text-gray-300">House Balance:</span><span id="houseBalance" class="font-semibold text-white">...</span></div>
             </div>
 
@@ -79,7 +79,7 @@
 
     <script>
         // --- Configuration ---
-        const contractAddress = "0xA67df10E23992f4bBf8d38Ae860DE5B6eDBa8320";
+        const contractAddress = "0xb71c3c8b6d6e88F39f70d5A3F092f36709Ce7320";
         const contractABI = [{"inputs":[{"internalType":"bool","name":"_choseHeads","type":"bool"}],"name":"flip","outputs":[],"stateMutability":"payable","type":"function"},{"inputs":[],"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"player","type":"address"},{"indexed":false,"internalType":"bool","name":"choseHeads","type":"bool"},{"indexed":false,"internalType":"bool","name":"outcomeIsHeads","type":"bool"},{"indexed":false,"internalType":"bool","name":"playerWon","type":"bool"}],"name":"FlipResult","type":"event"},{"inputs":[{"internalType":"address","name":"_admin","type":"address"},{"internalType":"uint256","name":"_amountInAvax","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},{"stateMutability":"payable","type":"receive"},{"inputs":[],"name":"BET_AMOUNT","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"getBalanceInAvax","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}];
         const fujiChainId = '0xa869';
         const betAmountHex = '0xB1A2BC2EC50000'; // 0.05 AVAX in Hex Wei
@@ -216,12 +216,12 @@
             
             setTimeout(() => {
                 if (playerWon) {
-                    showMessage(`It was ${outcomeIsHeads ? 'Heads' : 'Tails'}! You won 0.095 AVAX! 🎉`, 'success');
+                    showMessage(`It was ${outcomeIsHeads ? 'Heads' : 'Tails'}! You won 0.09 AVAX! 🎉`, 'success');
                 } else {
                     showMessage(`It was ${outcomeIsHeads ? 'Heads' : 'Tails'}. Better luck next time!`, 'error');
                 }
                 updateHouseBalance();
-                setButtonLoading(false); // Re-enable buttons only after animation and message
+                setButtonLoading(false);
             }, 1600);
         }
 
