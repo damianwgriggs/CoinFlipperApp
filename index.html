@@ -176,7 +176,12 @@
             showMessage('Confirm transaction in your wallet...', 'info');
 
             const txParams = {
-                from: currentAccount, to: contractAddress, value: betAmountHex,
+                from: currentAccount,
+                to: contractAddress,
+                value: betAmountHex,
+                // ** THE FIX IS HERE **
+                // We are manually setting a generous gas limit to prevent estimation errors.
+                gas: '0x30D40', // 200,000 gas limit in hex
                 data: contractInterface.encodeFunctionData("flip", [choseHeads]),
             };
 
