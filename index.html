@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVAX Coin Flip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a1a1a; /* Dark background */
+            color: #f0f0f0;
+        }
+        .coin-container {
+            perspective: 1000px;
+        }
+        .coin {
+            width: 150px;
+            height: 150px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1.5s cubic-bezier(0.6, -0.28, 0.735, 0.045);
+        }
+        .coin.flipping-heads {
+            transform: rotateY(1800deg); /* 5 full spins */
+        }
+        .coin.flipping-tails {
+            transform: rotateY(1980deg); /* 5.5 spins */
+        }
+        .coin-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #e6e6e6, #b0b0b0);
+            color: #333;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2), inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        .coin-face.tails {
+            transform: rotateY(180deg);
+        }
+        .avax-logo {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #e84142, #b52525);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(232, 65, 66, 0.4);
+        }
+        .btn-primary:disabled {
+            background: #4a4a4a;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .glass-panel {
+            background: rgba(40, 40, 40, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md mx-auto p-6 md:p-8 rounded-2xl shadow-2xl glass-panel text-center">
+        
+        <header class="mb-6">
+            <div class="flex items-center justify-center mb-2">
+                <svg class="avax-logo" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M16 32C24.8366 32 32 24.8366 32 16C32 7.16344 24.8366 0 16 0C7.16344 0 0 7.16344 0 16C0 24.8366 7.16344 32 16 32ZM13.8643 9.49281L19.2941 9.49281L23.7314 22.5072L18.3016 22.5072L16.8973 18.6738L9.2066 18.6738L7.8023 22.5072L2.37255 22.5072L13.8643 9.49281ZM16.0501 12.3392L11.5369 16.096L14.6133 16.096L16.0501 12.3392Z" fill="#E84142"/></svg>
+                <h1 class="text-3xl font-bold text-white tracking-tight">AVAX Coin Flip</h1>
+            </div>
+            <p class="text-gray-400">A simple, fair game on the Fuji Testnet.</p>
+        </header>
+
+        <main>
+            <!-- Coin Animation -->
+            <div class="coin-container my-8">
+                <div id="coin" class="coin">
+                    <div class="coin-face heads">HEADS</div>
+                    <div class="coin-face tails">TAILS</div>
+                </div>
+            </div>
+
+            <!-- Game Info -->
+            <div class="bg-gray-800/50 rounded-lg p-4 mb-6 space-y-2">
+                <div class="flex justify-between items-center text-lg">
+                    <span class="text-gray-300">Bet Amount:</span>
+                    <span class="font-semibold text-white">0.05 AVAX</span>
+                </div>
+                <div class="flex justify-between items-center text-lg">
+                    <span class="text-gray-300">Payout:</span>
+                    <span class="font-semibold text-white">1.9x (0.095 AVAX)</span>
+                </div>
+                 <div class="flex justify-between items-center text-lg">
+                    <span class="text-gray-300">House Balance:</span>
+                    <span id="houseBalance" class="font-semibold text-white">Loading...</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div id="connectWalletContainer">
+                <button id="connectWalletBtn" class="w-full py-3 px-4 rounded-lg font-semibold text-lg text-white btn-primary">Connect Wallet</button>
+            </div>
+
+            <div id="gameContainer" class="hidden">
+                 <button id="flipBtn" class="w-full py-3 px-4 rounded-lg font-semibold text-lg text-white btn-primary">
+                    Flip the Coin!
+                    <span id="spinner" class="hidden ml-2 inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                </button>
+                <p id="walletAddress" class="text-gray-500 mt-3 text-sm truncate"></p>
+            </div>
+
+            <!-- Message Area -->
+            <div id="messageArea" class="mt-4 text-center min-h-[24px]">
+                <p id="messageText" class="text-gray-300"></p>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        // --- Smart Contract Details ---
+        const contractAddress = "0x4cea1C195559BC8F784Dc1cB85aCf64Caf6e69c7";
+        const contractABI = [
+            {
+                "inputs": [],
+                "name": "flip",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "player",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "bool",
+                        "name": "outcomeIsHeads",
+                        "type": "bool"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "bool",
+                        "name": "playerWon",
+                        "type": "bool"
+                    }
+                ],
+                "name": "FlipResult",
+                "type": "event"
+            },
+            {
+                "inputs": [],
+                "name": "withdraw",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "stateMutability": "payable",
+                "type": "receive"
+            },
+            {
+                "inputs": [],
+                "name": "BET_AMOUNT",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getBalanceInAvax",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+        const fujiChainId = '0xa869';
+
+        // --- DOM Elements ---
+        const connectWalletBtn = document.getElementById('connectWalletBtn');
+        const flipBtn = document.getElementById('flipBtn');
+        const houseBalanceEl = document.getElementById('houseBalance');
+        const walletAddressEl = document.getElementById('walletAddress');
+        const messageTextEl = document.getElementById('messageText');
+        const coin = document.getElementById('coin');
+        const spinner = document.getElementById('spinner');
+
+        const connectWalletContainer = document.getElementById('connectWalletContainer');
+        const gameContainer = document.getElementById('gameContainer');
+
+        // --- State ---
+        let provider;
+        let signer;
+        let contract;
+        let userAddress;
+        
+        // --- Functions ---
+        
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                showMessage('MetaMask is not installed!', 'error');
+                return;
+            }
+            try {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner();
+                userAddress = await signer.getAddress();
+                
+                const network = await provider.getNetwork();
+                if(network.chainId !== parseInt(fujiChainId, 16)) {
+                    await switchNetwork();
+                }
+                
+                initializeDApp();
+            } catch (error) {
+                console.error("Connection failed:", error);
+                showMessage('Wallet connection failed.', 'error');
+            }
+        }
+
+        async function switchNetwork() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: fujiChainId }],
+                });
+            } catch (switchError) {
+                // This error code indicates that the chain has not been added to MetaMask.
+                if (switchError.code === 4902) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: fujiChainId,
+                                chainName: 'Avalanche Fuji C-Chain',
+                                nativeCurrency: { name: 'AVAX', symbol: 'AVAX', decimals: 18 },
+                                rpcUrls: ['https://api.avax-test.network/ext/bc/C/rpc'],
+                                blockExplorerUrls: ['https://testnet.snowtrace.io/']
+                            }],
+                        });
+                    } catch (addError) {
+                        console.error('Failed to add Fuji network:', addError);
+                        showMessage('Could not add Fuji network to MetaMask.', 'error');
+                    }
+                } else {
+                    console.error('Failed to switch network:', switchError);
+                    showMessage('Could not switch to Fuji network.', 'error');
+                }
+            }
+        }
+        
+        async function initializeDApp() {
+            contract = new ethers.Contract(contractAddress, contractABI, signer);
+            
+            connectWalletContainer.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            
+            walletAddressEl.textContent = `Connected: ${userAddress.substring(0,6)}...${userAddress.substring(userAddress.length - 4)}`;
+            
+            updateHouseBalance();
+            listenForFlips();
+        }
+        
+        async function updateHouseBalance() {
+            try {
+                const balance = await contract.getBalanceInAvax();
+                houseBalanceEl.textContent = `${balance.toString()} AVAX`;
+            } catch (error) {
+                console.error("Could not fetch balance:", error);
+                houseBalanceEl.textContent = 'Error';
+            }
+        }
+        
+        async function flipCoin() {
+            setButtonLoading(true);
+            showMessage('Waiting for your confirmation...', 'info');
+            
+            try {
+                const betAmount = await contract.BET_AMOUNT();
+                const tx = await contract.flip({ value: betAmount });
+                
+                showMessage('Transaction sent! Waiting for confirmation...', 'info');
+                await tx.wait();
+                // We don't show the result here, we wait for the event listener.
+            } catch (error) {
+                console.error("Flip failed:", error);
+                if(error.code === 'ACTION_REJECTED') {
+                    showMessage('You rejected the transaction.', 'error');
+                } else {
+                     showMessage('Flip failed. Not enough house funds?', 'error');
+                }
+                setButtonLoading(false);
+            }
+        }
+        
+        function listenForFlips() {
+            contract.on("FlipResult", (player, outcomeIsHeads, playerWon, event) => {
+                // We only care about events from the current user
+                if (player.toLowerCase() === userAddress.toLowerCase()) {
+                    console.log("FlipResult Event:", { player, outcomeIsHeads, playerWon });
+                    
+                    // Trigger animation
+                    coin.className = 'coin'; // Reset animation classes
+                    void coin.offsetWidth; // Trigger reflow to restart animation
+                    if (outcomeIsHeads) {
+                        coin.classList.add('flipping-heads');
+                    } else {
+                        coin.classList.add('flipping-tails');
+                    }
+                    
+                    // Show result after animation
+                    setTimeout(() => {
+                        if(playerWon) {
+                           showMessage(`You won 0.095 AVAX! 🎉`, 'success');
+                        } else {
+                           showMessage(`It was ${outcomeIsHeads ? 'Heads' : 'Tails'}. Better luck next time!`, 'error');
+                        }
+                        updateHouseBalance();
+                        setButtonLoading(false);
+                    }, 1600); // A bit longer than animation duration
+                }
+            });
+        }
+        
+        function setButtonLoading(isLoading) {
+            flipBtn.disabled = isLoading;
+            if (isLoading) {
+                spinner.classList.remove('hidden');
+                flipBtn.firstChild.textContent = 'Flipping...';
+            } else {
+                spinner.classList.add('hidden');
+                flipBtn.firstChild.textContent = 'Flip the Coin!';
+            }
+        }
+
+        function showMessage(msg, type = 'info') {
+            messageTextEl.textContent = msg;
+            messageTextEl.className = 'transition-opacity duration-300'; // reset
+            switch (type) {
+                case 'success':
+                    messageTextEl.classList.add('text-green-400');
+                    break;
+                case 'error':
+                    messageTextEl.classList.add('text-red-400');
+                    break;
+                default:
+                    messageTextEl.classList.add('text-gray-300');
+            }
+        }
+
+        // --- Event Listeners ---
+        connectWalletBtn.addEventListener('click', connectWallet);
+        flipBtn.addEventListener('click', flipCoin);
+
+        // Check for existing connection on page load
+        if (typeof window.ethereum !== 'undefined' && window.ethereum.isConnected()) {
+            connectWallet();
+        }
+
+    </script>
+</body>
+</html>
