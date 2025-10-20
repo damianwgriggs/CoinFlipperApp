@@ -179,9 +179,7 @@
                 from: currentAccount,
                 to: contractAddress,
                 value: betAmountHex,
-                // ** THE FIX IS HERE **
-                // We are manually setting a generous gas limit to prevent estimation errors.
-                gas: '0x30D40', // 200,000 gas limit in hex
+                gas: '0x30D40', // 200,000 gas limit in hex to prevent estimation errors
                 data: contractInterface.encodeFunctionData("flip", [choseHeads]),
             };
 
@@ -196,9 +194,14 @@
                         const decodedLog = contractInterface.decodeEventLog("FlipResult", flipResultLog.data, flipResultLog.topics);
                         handleFlipResult(decodedLog.choseHeads, decodedLog.outcomeIsHeads, decodedLog.playerWon);
                     } else {
-                        showMessage('Flip successful, but result unclear.', 'info'); setButtonLoading(false); updateHouseBalance();
+                        showMessage('Flip successful, but result unclear.', 'info');
+                        updateHouseBalance();
+                        setButtonLoading(false); 
                     }
-                } else { showMessage('Transaction failed. Please try again.', 'error'); setButtonLoading(false); }
+                } else { 
+                    showMessage('Transaction failed. Please try again.', 'error');
+                    setButtonLoading(false);
+                }
             } catch (error) {
                 if (error.code === 4001) { showMessage('Transaction cancelled.', 'error'); } 
                 else { showMessage('An error occurred.', 'error'); console.error(error); }
@@ -207,8 +210,8 @@
         }
         
         function handleFlipResult(choseHeads, outcomeIsHeads, playerWon) {
-            coin.className = 'coin'; // Reset animation class
-            void coin.offsetWidth; // This is a trick to force the browser to repaint, allowing the animation to restart
+            coin.className = 'coin';
+            void coin.offsetWidth;
             coin.classList.add(outcomeIsHeads ? 'flipping-heads' : 'flipping-tails');
             
             setTimeout(() => {
@@ -218,8 +221,8 @@
                     showMessage(`It was ${outcomeIsHeads ? 'Heads' : 'Tails'}. Better luck next time!`, 'error');
                 }
                 updateHouseBalance();
-                setButtonLoading(false);
-            }, 1600); // Wait for animation to mostly finish
+                setButtonLoading(false); // Re-enable buttons only after animation and message
+            }, 1600);
         }
 
         // --- Utility Functions ---
